@@ -93,12 +93,6 @@ class TestVectorsIterator:
         vectors = self._read_vectors()
         vectors_keys = vectors.keys()
 
-        if "COUNT" not in vectors_keys:
-            raise RspParsingError("Invalid test vector: missing field COUNT")
-
-        if len(vectors) == 1:
-            raise RspParsingError("Invalid test vector: COUNT is the only field")
-
         if not self._expected_fields:
             self._expected_fields = vectors_keys
 

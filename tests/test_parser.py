@@ -67,19 +67,9 @@ class TestRspParsing(TestCase):
                 for profile in rsp_file:
                     list(profile.vectors)
 
-        with RspFile(f"{THIS_SCRIPT_DIR}/data/malformed2.rsp") as rsp_file:
-            with self.assertRaisesRegex(RspParsingError, "missing field COUNT"):
-                for profile in rsp_file:
-                    list(profile.vectors)
-
         with RspFile(f"{THIS_SCRIPT_DIR}/data/malformed3.rsp") as rsp_file:
             with self.assertRaisesRegex(RspParsingError, "Duplicated attribute"):
                 rsp_file.profiles
-
-        with RspFile(f"{THIS_SCRIPT_DIR}/data/malformed5.rsp") as rsp_file:
-            with self.assertRaisesRegex(RspParsingError, "COUNT is the only field"):
-                for profile in rsp_file:
-                    list(profile.vectors)
 
         with RspFile(f"{THIS_SCRIPT_DIR}/data/malformed6.rsp") as rsp_file:
             with self.assertRaisesRegex(RspParsingError, "Duplicated key: Key"):
