@@ -125,6 +125,7 @@ class TestVectorsIterator:
         while line and line != "\n" and not line.startswith("["):
             key, value = line.split("=")
             key = key.strip()
+            value = value.strip()
 
             if key in vectors.keys():
                 raise RspParsingError(f"Duplicated key: {key}")
