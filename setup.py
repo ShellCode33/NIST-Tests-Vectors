@@ -13,19 +13,19 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     keywords="nist test vectors crypto block cipher aes signature key derivation drbg",
-    license="GPLv3",
+    license="MIT",
     author='ShellCode',
     author_email='shellcode33@protonmail.ch',
     url='https://github.com/ShellCode33/NIST-Test-Vectors',
     packages=find_packages(),
-    python_requires='>=3.5',
+    python_requires='>=3.6',
 
     classifiers=[
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
-        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Programming Language :: Python :: 3.9",
+        "License :: OSI Approved :: MIT License",
         "Operating System :: POSIX :: Linux",
     ],
 
@@ -35,7 +35,7 @@ setup(
 
     entry_points={
         "console_scripts": [
-            "ntv = nist_test_vectors.cli:main",
+            "nist-tv = nist_tests_vectors.cli:main",
         ]
     }
 )
