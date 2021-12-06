@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import os
+import re
 import itertools
 from collections.abc import Iterable
 from typing import Union, List
@@ -9,6 +10,7 @@ import json
 from json.encoder import JSONEncoder
 
 from jinja2 import Template
+from jinja2.filters import FILTERS
 
 from nist_tests_vectors.parser import RspFile, Profile, TestVector, TestVectors, TestVectorsIterator
 
@@ -72,6 +74,19 @@ def save_as_json(rsp_iterator: Union[RspFile, Profile, List[TestVector]], output
     with open(output_file, "w", encoding="utf-8") as out_fd:
         json.dump(rsp_iterator, out_fd, indent=4, cls=RspJsonEncoder)
 
+
+def _sanitize_for_c(input_to_sanitize):
+
+    if isinstance(input_to_sanitize, str):
+        return re.sub(r"[\s./\-*+)(:;,!?%\"'&|]+", "_", input_to_sanitize)
+
+    elif isinstance(input_to_sanitize, int):
+        pass
+
+    else:
+        raise NotImplemented
+
+FILTERS["sanitize_for_c"] = _sanitize_for_c
 
 def _save_rsp_file_as_c(rsp_file: RspFile, output_file: str, jinja_template_path: str):
     tests_vectors_keys = next(rsp_file.profiles[0].vectors).keys()

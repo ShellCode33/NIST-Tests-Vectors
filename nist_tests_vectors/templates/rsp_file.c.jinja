@@ -7,10 +7,10 @@
 struct test_vectors {
 {%- for key, value in first_test_vectors.__dict__().items() %}
     {%- if value is integer %}
-    unsigned int {{ key }};
+    unsigned int {{ key | sanitize_for_c }};
     {%- else %}
-    unsigned int {{ key }}_size_in_bytes;
-    const unsigned char *{{ key }};
+    unsigned int {{ key | sanitize_for_c }}_size_in_bytes;
+    const unsigned char *{{ key | sanitize_for_c }};
     {%- endif %}
 {%- endfor %}
 };
@@ -22,16 +22,16 @@ static const char* rsp_file_metadata[] = {
 };
 
 {% for attribute, values in profile_attributes_values.items() %}
-enum {{ attribute }} {
+enum {{ attribute | sanitize_for_c }} {
     {%- for value in values %}
-    {{ attribute }}_{{ value }},
+    {{ attribute | sanitize_for_c }}_{{ value | sanitize_for_c }},
     {%- endfor %}
 };
 {% endfor %}
 
 struct profile {
     {%- for attribute in profile_attributes_values.keys() %}
-    enum {{ attribute }} {{ attribute | lower }};
+    enum {{ attribute | sanitize_for_c }} {{ attribute | sanitize_for_c | lower }};
     {%- endfor %}
 
     unsigned int tests_vectors_count;
@@ -47,19 +47,19 @@ struct profile {
 // ------------------------------ TEST VECTORS NUMBER {{ loop.index }} FROM PROFILE {{ profile_loop.index }} ------------------------------
         {%- for test_vectors in tests_vectors %}
             {%- if test_vectors.value is integer %}
-static const unsigned int {{ test_vectors.key }}_{{ profile_loop.index }}_{{ vectors_loop.index }} = {{ test_vectors.value }};
+static const unsigned int {{ test_vectors.key | sanitize_for_c }}_{{ profile_loop.index }}_{{ vectors_loop.index }} = {{ test_vectors.value | sanitize_for_c }};
             {%- else %}
-static const unsigned char {{ test_vectors.key }}_{{ profile_loop.index }}_{{ vectors_loop.index }}[] = { {%- for byte in test_vectors.value %}{{ "0x%02X" | format(byte) }}, {% endfor %}};
+static const unsigned char {{ test_vectors.key | sanitize_for_c }}_{{ profile_loop.index }}_{{ vectors_loop.index }}[] = { {%- for byte in test_vectors.value %}{{ "0x%02X" | format(byte) }}, {% endfor %}};
             {%- endif %}
         {%- endfor %}
 
 static const struct test_vectors test_vectors_{{ profile_loop.index }}_{{ vectors_loop.index }} = {
         {%- for test_vectors in tests_vectors %}
             {%- if test_vectors.value is integer %}
-    .{{ test_vectors.key }} = {{ test_vectors.key }}_{{ profile_loop.index }}_{{ vectors_loop.index }},
+    .{{ test_vectors.key | sanitize_for_c }} = {{ test_vectors.key | sanitize_for_c }}_{{ profile_loop.index }}_{{ vectors_loop.index }},
             {%- else %}
-    .{{ test_vectors.key }}_size_in_bytes = sizeof({{ test_vectors.key }}_{{ profile_loop.index }}_{{ vectors_loop.index }}),
-    .{{ test_vectors.key }} = {{ test_vectors.key }}_{{ profile_loop.index }}_{{ vectors_loop.index }},
+    .{{ test_vectors.key | sanitize_for_c }}_size_in_bytes = sizeof({{ test_vectors.key | sanitize_for_c }}_{{ profile_loop.index }}_{{ vectors_loop.index }}),
+    .{{ test_vectors.key | sanitize_for_c }} = {{ test_vectors.key | sanitize_for_c }}_{{ profile_loop.index }}_{{ vectors_loop.index }},
             {%- endif %}
         {%- endfor %}
 };
@@ -76,7 +76,7 @@ static const struct profile profiles[] = {
 {%- for profile in rsp_file %}
     {
         {%- for attribute, value in profile.attributes.items() %}
-        .{{ attribute | lower }} = {{ attribute }}_{{ value }},
+        .{{ attribute | sanitize_for_c | lower }} = {{ attribute | sanitize_for_c }}_{{ value | sanitize_for_c }},
         {%- endfor %}
 
         .tests_vectors_count = sizeof(tests_vectors_{{ loop.index }}) / sizeof(tests_vectors_{{ loop.index }}[0]),
@@ -107,11 +107,11 @@ int main(void)
         printf("Processing profile number %u\n", i + 1);
      {% for attribute, values in profile_attributes_values.items()  %}
 
-        switch(current_profile->{{ attribute | lower }})
+        switch(current_profile->{{ attribute | sanitize_for_c | lower }})
         {
      	{%- for value in values %}
-		case {{ attribute }}_{{ value }}:
-			printf("  {{ attribute }} = {{ value }}\n");
+		case {{ attribute | sanitize_for_c }}_{{ value | sanitize_for_c }}:
+			printf("  {{ attribute | sanitize_for_c }} = {{ value | sanitize_for_c }}\n");
 			break;
     	{%- endfor %}
         }
@@ -122,12 +122,12 @@ int main(void)
             printf("\n  Vector number %u\n", j + 1);
         {%- for key, value in first_test_vectors.__dict__().items() %}
             {%- if value is integer %}
-            printf("    {{ key }} = %u\n",
-                   current_profile->tests_vectors[j]->{{ key }});
+            printf("    {{ key | sanitize_for_c }} = %u\n",
+                   current_profile->tests_vectors[j]->{{ key | sanitize_for_c }});
             {%- else %}
-            printf("    {{ key }} = ");
-            print_bytes(current_profile->tests_vectors[j]->{{ key }},
-                        current_profile->tests_vectors[j]->{{ key }}_size_in_bytes);
+            printf("    {{ key | sanitize_for_c }} = ");
+            print_bytes(current_profile->tests_vectors[j]->{{ key | sanitize_for_c }},
+                        current_profile->tests_vectors[j]->{{ key | sanitize_for_c }}_size_in_bytes);
             {%- endif %}
         {%- endfor %}
         }
