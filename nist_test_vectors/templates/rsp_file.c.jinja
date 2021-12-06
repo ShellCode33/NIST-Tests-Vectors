@@ -1,0 +1,139 @@
+/*
+ * This file has been generated with https://github.com/ShellCode33/NIST-Test-Vectors
+ */
+
+{%- set first_test_vectors = rsp_file.profiles[0].vectors | first %}
+
+struct test_vectors {
+{%- for key, value in first_test_vectors.__dict__().items() %}
+    {%- if value is integer %}
+    unsigned int {{ key }};
+    {%- else %}
+    unsigned int {{ key }}_size_in_bytes;
+    const unsigned char *{{ key }};
+    {%- endif %}
+{%- endfor %}
+};
+
+static const char* rsp_file_metadata[] = {
+{%- for metadata in rsp_file.metadata %}
+    "{{ metadata.replace('"', '\\"') }}",
+{%- endfor %}
+};
+
+{% for attribute, values in profile_attributes_values.items() %}
+enum {{ attribute }} {
+    {%- for value in values %}
+    {{ attribute }}_{{ value }},
+    {%- endfor %}
+};
+{% endfor %}
+
+struct profile {
+    {%- for attribute in profile_attributes_values.keys() %}
+    enum {{ attribute }} {{ attribute | lower }};
+    {%- endfor %}
+
+    unsigned int tests_vectors_count;
+    const struct test_vectors **tests_vectors;
+};
+
+{%- for profile in rsp_file %}
+    {% set profile_loop = loop %}
+
+    {%- for tests_vectors in profile.vectors %}
+        {% set vectors_loop = loop %}
+
+// ------------------------------ TEST VECTORS NUMBER {{ loop.index }} FROM PROFILE {{ profile_loop.index }} ------------------------------
+        {%- for test_vectors in tests_vectors %}
+            {%- if test_vectors.value is integer %}
+static const unsigned int {{ test_vectors.key }}_{{ profile_loop.index }}_{{ vectors_loop.index }} = {{ test_vectors.value }};
+            {%- else %}
+static const unsigned char {{ test_vectors.key }}_{{ profile_loop.index }}_{{ vectors_loop.index }}[] = { {%- for byte in test_vectors.value %}{{ "0x%02X" | format(byte) }}, {% endfor %}};
+            {%- endif %}
+        {%- endfor %}
+
+static const struct test_vectors test_vectors_{{ profile_loop.index }}_{{ vectors_loop.index }} = {
+        {%- for test_vectors in tests_vectors %}
+            {%- if test_vectors.value is integer %}
+    .{{ test_vectors.key }} = {{ test_vectors.key }}_{{ profile_loop.index }}_{{ vectors_loop.index }},
+            {%- else %}
+    .{{ test_vectors.key }}_size_in_bytes = sizeof({{ test_vectors.key }}_{{ profile_loop.index }}_{{ vectors_loop.index }}),
+    .{{ test_vectors.key }} = {{ test_vectors.key }}_{{ profile_loop.index }}_{{ vectors_loop.index }},
+            {%- endif %}
+        {%- endfor %}
+};
+    {%- endfor %}
+
+static const struct test_vectors* tests_vectors_{{ profile_loop.index }}[] = {
+    {%- for tests_vectors in profile.vectors %}
+    &test_vectors_{{ profile_loop.index }}_{{ loop.index }},
+    {%- endfor %}
+};
+{%- endfor %}
+
+static const struct profile profiles[] = {
+{%- for profile in rsp_file %}
+    {
+        {%- for attribute, value in profile.attributes.items() %}
+        .{{ attribute | lower }} = {{ attribute }}_{{ value }},
+        {%- endfor %}
+
+        .tests_vectors_count = sizeof(tests_vectors_{{ loop.index }}) / sizeof(tests_vectors_{{ loop.index }}[0]),
+        .tests_vectors = tests_vectors_{{ loop.index }}
+    },
+{%- endfor %}
+};
+#define PROFILES_COUNT (sizeof profiles / sizeof *profiles)
+
+
+#include <stdio.h>
+
+void print_bytes(const void *data, unsigned int size)
+{
+    for(unsigned int i = 0; i < size; i++)
+    {
+        printf("%02x", ((unsigned char*)data)[i]);
+    }
+
+    printf("\n");
+}
+
+int main(void)
+{
+    for(unsigned int i = 0; i < PROFILES_COUNT; i++)
+    {
+        const struct profile *current_profile = profiles + i;
+        printf("Processing profile number %u\n", i + 1);
+     {% for attribute, values in profile_attributes_values.items()  %}
+
+        switch(current_profile->{{ attribute | lower }})
+        {
+     	{%- for value in values %}
+		case {{ attribute }}_{{ value }}:
+			printf("  {{ attribute }} = {{ value }}\n");
+			break;
+    	{%- endfor %}
+        }
+    {%- endfor %}
+
+        for(unsigned int j = 0; j < current_profile->tests_vectors_count; j++)
+        {
+            printf("\n  Vector number %u\n", j + 1);
+        {%- for key, value in first_test_vectors.__dict__().items() %}
+            {%- if value is integer %}
+            printf("    {{ key }} = %u\n",
+                   current_profile->tests_vectors[j]->{{ key }});
+            {%- else %}
+            printf("    {{ key }} = ");
+            print_bytes(current_profile->tests_vectors[j]->{{ key }},
+                        current_profile->tests_vectors[j]->{{ key }}_size_in_bytes);
+            {%- endif %}
+        {%- endfor %}
+        }
+
+        printf("\n");
+    }
+
+    return 0;
+}
