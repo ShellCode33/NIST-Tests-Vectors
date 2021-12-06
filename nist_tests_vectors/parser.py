@@ -243,18 +243,22 @@ class RspFile:
     def __next__(self):
         return Profile(self._rsp_fd)
 
-    def _read_meta_data(self):
-        self.metadata = []
+    def _read_meta_data(self, existing_metadata=None):
+        self.metadata = existing_metadata or []
 
         line = self._rsp_fd.readline()
-
-        # Skip potentially empty first lines
-        while line == "\n":
-            line = self._rsp_fd.readline()
 
         while line.startswith("#"):
             self.metadata.append(line[1:].strip())
             line = self._rsp_fd.readline()
+
+        # Skip potentially empty lines
+        while line == "\n":
+            line = self._rsp_fd.readline()
+
+        if line.startswith("#"):
+            # Metadata is divided into multiple chunks, recursive call
+            return self._read_meta_data(self.metadata)
 
         self._file_ptr_after_metadata = self._rsp_fd.tell() - len(line) - 1
 
