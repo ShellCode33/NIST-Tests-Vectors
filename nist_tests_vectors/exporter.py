@@ -12,10 +12,14 @@ from jinja2 import Template
 
 from nist_tests_vectors.parser import RspFile, Profile, TestVector, TestVectors, TestVectorsIterator
 
-THIS_SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-DEFAULT_RSP_FILE_JINJA_TEMPLATE = f"{THIS_SCRIPT_DIR}/templates/rsp_file.c.jinja"
-DEFAULT_PROFILE_JINJA_TEMPLATE = f"{THIS_SCRIPT_DIR}/templates/profile.c.jinja"
-DEFAULT_TESTS_VECTORS_JINJA_TEMPLATE = f"{THIS_SCRIPT_DIR}/templates/tests_vectors.c.jinja"
+SUPPORTED_EXPORT_FORMATS = ["json", "c"]
+SUPPORTED_TEMPLATE_FORMATS = ["c"]
+
+_THIS_SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+
+_DEFAULT_RSP_FILE_TEMPLATE = f"{_THIS_SCRIPT_DIR}/templates/rsp_file.c.jinja"
+_DEFAULT_PROFILE_TEMPLATE = f"{_THIS_SCRIPT_DIR}/templates/profile.c.jinja"
+_DEFAULT_TESTS_VECTORS_TEMPLATE = f"{_THIS_SCRIPT_DIR}/templates/tests_vectors.c.jinja"
 
 class RspJsonEncoder(JSONEncoder):
 
@@ -130,13 +134,13 @@ def save_as_c(rsp_iterator: Union[RspFile, Profile, TestVectorsIterator], output
         raise FileExistsError(f"File '{output_file}' already exists")
 
     if isinstance(rsp_iterator, RspFile):
-        _save_rsp_file_as_c(rsp_iterator, output_file, jinja_template_path or DEFAULT_RSP_FILE_JINJA_TEMPLATE)
+        _save_rsp_file_as_c(rsp_iterator, output_file, jinja_template_path or _DEFAULT_RSP_FILE_TEMPLATE)
 
     elif isinstance(rsp_iterator, Profile):
-        _save_profile_as_c(rsp_iterator, output_file, jinja_template_path or DEFAULT_PROFILE_JINJA_TEMPLATE)
+        _save_profile_as_c(rsp_iterator, output_file, jinja_template_path or _DEFAULT_PROFILE_TEMPLATE)
 
     elif isinstance(rsp_iterator, list) and isinstance(rsp_iterator[0], TestVector):
-        _save_test_vectors_as_c(rsp_iterator, output_file, jinja_template_path or DEFAULT_TESTS_VECTORS_JINJA_TEMPLATE)
+        _save_test_vectors_as_c(rsp_iterator, output_file, jinja_template_path or _DEFAULT_TESTS_VECTORS_TEMPLATE)
 
     else:
         raise NotImplemented
