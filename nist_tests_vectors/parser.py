@@ -165,14 +165,14 @@ class Profile:
 
     def __repr__(self) -> str:
         return f"Profile({self.attributes})"
-
+    """
     def __eq__(self, other) -> bool:
 
         if not isinstance(other, Profile):
             return NotImplemented
 
         return self.attributes == other.attributes
-
+    """
     def _read_profile_attributes(self) -> None:
         self.attributes = {}
         line = self._rsp_fd.readline()
@@ -228,9 +228,6 @@ class RspFile:
         self._rsp_fd: TextIOWrapper
         self._file_ptr_after_metadata: int
 
-        # Not that much of an overhead and allows us to detect duplicates
-        self._seen_profiles: List[Profile] = []
-
         self._rsp_fd = open(self.path, "r")
         self._read_meta_data()
 
@@ -247,19 +244,10 @@ class RspFile:
     def __iter__(self):
         # Set file pointer after the metadata
         self._rsp_fd.seek(self._file_ptr_after_metadata)
-
-        # Reset seen profiles
-        self._seen_profiles.clear()
         return self
 
     def __next__(self):
-        p = Profile(self._rsp_fd)
-
-        if p in self._seen_profiles:
-            raise RspParsingError(f"Duplicated profile: {p}")
-
-        self._seen_profiles.append(p)
-        return p
+        return Profile(self._rsp_fd)
 
     def _read_meta_data(self):
         self.metadata = []

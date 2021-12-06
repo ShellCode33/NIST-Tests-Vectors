@@ -76,10 +76,6 @@ class TestRspParsing(TestCase):
             with self.assertRaisesRegex(RspParsingError, "Duplicated attribute"):
                 rsp_file.profiles
 
-        with RspFile(f"{THIS_SCRIPT_DIR}/data/malformed4.rsp") as rsp_file:
-            with self.assertRaisesRegex(RspParsingError, "Duplicated profile"):
-                rsp_file.profiles
-
         with RspFile(f"{THIS_SCRIPT_DIR}/data/malformed5.rsp") as rsp_file:
             with self.assertRaisesRegex(RspParsingError, "COUNT is the only field"):
                 for profile in rsp_file:
