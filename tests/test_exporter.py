@@ -5,8 +5,8 @@ import json
 from unittest import TestCase
 from tempfile import TemporaryDirectory
 
-from nist_test_vectors import RspFile
-from nist_test_vectors.exporter import save_as_json, save_as_c
+from nist_tests_vectors import RspFile
+from nist_tests_vectors.exporter import save_as_json, save_as_c
 
 THIS_SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 

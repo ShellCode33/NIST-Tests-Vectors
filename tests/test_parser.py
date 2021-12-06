@@ -3,7 +3,7 @@
 import os
 from unittest import TestCase
 
-from nist_test_vectors import RspFile, RspParsingError, TestVector, TestVectors
+from nist_tests_vectors import RspFile, RspParsingError, TestVector, TestVectors
 
 THIS_SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 

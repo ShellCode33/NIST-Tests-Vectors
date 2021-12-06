@@ -10,7 +10,7 @@ from json.encoder import JSONEncoder
 
 from jinja2 import Template
 
-from nist_test_vectors.parser import RspFile, Profile, TestVector, TestVectors, TestVectorsIterator
+from nist_tests_vectors.parser import RspFile, Profile, TestVector, TestVectors, TestVectorsIterator
 
 THIS_SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 DEFAULT_RSP_FILE_JINJA_TEMPLATE = f"{THIS_SCRIPT_DIR}/templates/rsp_file.c.jinja"
