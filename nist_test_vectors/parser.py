@@ -1,7 +1,9 @@
 # coding: utf-8
 
-from typing import List, Set
+from typing import List, Set, Union, Iterator, Dict
 from io import TextIOWrapper
+from dataclasses import dataclass
+from collections.abc import Iterable
 
 
 class RspParsingError(Exception):
@@ -9,19 +11,69 @@ class RspParsingError(Exception):
     Raised when parsing the RSP file fails due to unexpected data.
     """
 
-class TestVector(dict):
+@dataclass(frozen=True)
+class TestVector:
+    key: str
+    value: Union[int, bytearray]
+
+    @staticmethod
+    def parse_vector_value(value: str) -> Union[int, bytearray]:
+        """
+        Some test vector values are base 10 compatible but are in fact bytes string.
+        This static method tries to guess whether the test vector value should be a
+        bytes array or a raw integer.
+
+        Raises ValueError if given parameter is invalid.
+        """
+
+        # Only base 16 values can start with 0.
+        # (except 0 itself but 0 is the same in base 10 and base 16)
+        if value.startswith("00"):
+            return bytearray.fromhex(value)
+
+        try:
+            value_as_int = int(value, 10)
+
+            # If an integer is more than 4 bytes wide it's probably an hexstring
+            if value_as_int > 2**32 - 1:
+                return bytearray.fromhex(value)
+
+            else:
+                return value_as_int
+
+        except ValueError:
+            return bytearray.fromhex(value)
+
+
+class TestVectors(Iterable):
     """
     """
 
-    def __repr__(self) -> str:
-        return f"TestVector({super().__repr__()})"
+    def __init__(self):
+        self._test_vectors: List[TestVector] = []
 
-class ProfileAttributes(dict):
-    """
-    """
+    def keys(self) -> Set[str]:
+        return set([v.key for v in self._test_vectors])
 
-    def __repr__(self) -> str:
-        return f"ProfileAttributes({super().__repr__()})"
+    def __iter__(self) -> Iterator[TestVector]:
+        return self._test_vectors.__iter__()
+
+    def __dict__(self) -> Dict[str, Union[str, int, bytearray]]:
+        return {vec.key: vec.value for vec in self._test_vectors}
+
+    def __getitem__(self, key: str):
+        for vec in self._test_vectors:
+            if vec.key == key:
+                return vec.value
+
+        raise KeyError(f"Key '{key}' not found")
+
+    def __len__(self):
+        return len(self._test_vectors)
+
+    def append(self, item: TestVector):
+        self._test_vectors.append(item)
+
 
 class TestVectorsIterator:
 
@@ -37,25 +89,26 @@ class TestVectorsIterator:
     def __iter__(self):
         return self
 
-    def __next__(self) -> TestVector:
-        vector = self._read_vector()
+    def __next__(self) -> TestVectors:
+        vectors = self._read_vectors()
+        vectors_keys = vectors.keys()
 
-        if "COUNT" not in vector:
+        if "COUNT" not in vectors_keys:
             raise RspParsingError("Invalid test vector: missing field COUNT")
 
-        if len(vector) == 1:
+        if len(vectors) == 1:
             raise RspParsingError("Invalid test vector: COUNT is the only field")
 
         if not self._expected_fields:
-            self._expected_fields = set(vector.keys())
+            self._expected_fields = vectors_keys
 
-        elif vector.keys() != self._expected_fields:
+        elif vectors_keys != self._expected_fields:
             raise RspParsingError("Invalid test vector: fields inconsistency")
 
-        return vector
+        return vectors
 
-    def _read_vector(self) -> TestVector:
-        vector = TestVector()
+    def _read_vectors(self) -> TestVectors:
+        vectors = TestVectors()
 
         line = self._rsp_fd.readline()
 
@@ -79,19 +132,15 @@ class TestVectorsIterator:
             key, value = line.split("=")
             key = key.strip()
 
-            if key in vector:
+            if key in vectors.keys():
                 raise RspParsingError(f"Duplicated key: {key}")
 
             try:
-                value = int(value, 10)
+                value = TestVector.parse_vector_value(value)
             except ValueError:
-                try:
-                    value = int(value, 16)
-                except ValueError:
-                    raise RspParsingError(f"Expected integer or hexstring, got: {value}") from None
+                raise RspParsingError(f"Expected integer or hexstring, got: {value}") from None
 
-            vector[key] = value
-
+            vectors.append(TestVector(key, value))
             line = self._rsp_fd.readline()
 
         # Beginning of new profile detected = we will stop iterating next call
@@ -100,7 +149,7 @@ class TestVectorsIterator:
             # Cancel the reading of this line
             self._rsp_fd.seek(self._rsp_fd.tell() - len(line) - 1)
 
-        return vector
+        return vectors
 
 class Profile:
 
@@ -111,7 +160,7 @@ class Profile:
         self._rsp_fd = rsp_fd
         self._file_ptr_after_profile: int
 
-        self.attributes: ProfileAttributes
+        self.attributes: Dict[str, Union[str, int, bytearray]]
         self._read_profile_attributes()
 
     def __repr__(self) -> str:
@@ -125,8 +174,7 @@ class Profile:
         return self.attributes == other.attributes
 
     def _read_profile_attributes(self) -> None:
-
-        self.attributes = ProfileAttributes()
+        self.attributes = {}
         line = self._rsp_fd.readline()
 
         # Keep reading lines until we find a profile
@@ -145,7 +193,7 @@ class Profile:
                 raise RspParsingError(f"Invalid profile attribute: {tokens}")
 
             key = tokens[0].strip()
-            value = tokens[1].strip() if len(tokens) == 2 else None
+            value = tokens[1].strip() if len(tokens) == 2 else ""
 
             if key in self.attributes:
                 raise RspParsingError(f"Duplicated attribute: {key}")
